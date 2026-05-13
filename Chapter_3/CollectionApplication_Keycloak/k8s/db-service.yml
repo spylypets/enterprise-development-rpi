@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  labels:
+    db: collection
+data:
+  init.sql: |
+     CREATE DATABASE collection;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collection-postgres
+  labels:
+    db:  collection
+spec:
+  selector:
+    matchLabels:
+      db:  collection
+  template:
+    metadata:
+      labels:
+        db:  collection
+    spec:
+      containers:
+        - name: collection-postgres
+          image: postgres:17-alpine
+          env:
+            - name: POSTGRES_USER
+              value: collector
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                   name: db-config-secret
+                   key: collection.password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 60Mi
+            limits:
+              cpu: 200m
+              memory: 120Mi
+          volumeMounts:
+            - mountPath: /docker-entrypoint-initdb.d
+              name: db-init-volume
+      volumes:
+        - name: db-init-volume
+          configMap:
+            name: db-config
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: collection-postgres
+  labels:
+    db:  collection
+spec:
+  type: ClusterIP
+  selector:
+    db:  collection
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432

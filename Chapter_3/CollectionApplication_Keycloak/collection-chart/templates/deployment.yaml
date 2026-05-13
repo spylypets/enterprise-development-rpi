@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "collection-chart.name" . }}
+  labels:
+    {{- include "collection-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "collection-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "collection-chart.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      initContainers:
+        - name: flyway-migration
+          image: flyway/flyway:latest
+          command: ['flyway', 'migrate']
+          env:
+            - name: FLYWAY_URL
+              value: {{ .Values.flywayURL }}
+            - name: FLYWAY_USER
+              value: {{ .Values.flywayUser }}
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                   name: {{ .Values.secretKey.name }}
+                   key: {{ .Values.secretKey.key }}
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /flyway/sql
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          {{- with .Values.containers.env }}
+          env:
+              {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.containers.resources }}
+          resources:
+              {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

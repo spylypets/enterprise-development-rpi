@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collection-service
+  labels:
+    app: collection-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collection-service
+  template:
+    metadata:
+      labels:
+        app: collection-service
+    spec:
+      initContainers:
+      - name: flyway-migration
+        image: flyway/flyway:latest
+        command: ['flyway', 'migrate']
+        env:
+          - name: FLYWAY_URL
+            value: "jdbc:postgresql://collection-postgres:5432/collection"
+          - name: FLYWAY_USER
+            value: "collector"
+          - name: FLYWAY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                 name: db-config-secret
+                 key: collection.password
+        volumeMounts:
+          - name: migration-scripts
+            mountPath: /flyway/sql
+      containers:
+        - name: collection-service
+          image: k3s.registry/collection-application:0.0.1-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8088
+          env:
+            - name: BPL_JVM_THREAD_COUNT
+              value: "50"
+            - name: KEYCLOAK_HOST
+              value: 192.168.49.1
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                   name: db-config-secret
+                   key: collection.password
+            - name: DB_HOST
+              value: collection-postgres
+          resources:
+             limits:
+               ephemeral-storage: 1Gi
+             requests:
+               ephemeral-storage: 500Mi
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: flyway-migration-scripts
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+    name: collection-service
+    labels:
+       app: collection-service
+spec:
+     type: ClusterIP
+     selector:
+       app: collection-service
+     ports:
+     - protocol: TCP
+       port: 8088
+       targetPort: 8088

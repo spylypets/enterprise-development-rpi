@@ -1,0 +1,59 @@
+“realm”: “collection”,
+“enabled”: true,
+"registrationAllowed": false,
+"requiredCredentials": [
+    "password"
+],
+“users”: [
+   {
+      “username”: “admin”,
+      “enabled”: true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AdminPassword123"
+        }
+      ],
+      “realmRoles”:  [
+           “admin”,
+           “user”       
+       ]
+   },
+   {
+      “username”: “user”,
+      “enabled”: true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "UserPassword789"
+        }
+      ],
+      “realmRoles”:  [
+           “user”       
+       ]
+   },
+   ...
+],
+“roles”: {
+  “realm”: [
+     {
+       “name”: “admin”
+       “description”: “Admin access privileges”
+     },
+     {
+       “name”: “user”
+       “description”: “User access privileges”
+     }
+  ]
+},
+"clients": [
+   {
+      "clientId": "collection-service-ui",
+      "enabled": true,
+      "publicClient": true,
+      "baseUrl": "http://localhost:8888",
+      "redirectUris": [
+        "http://localhost:8888/*"
+      ]
+    }
+]

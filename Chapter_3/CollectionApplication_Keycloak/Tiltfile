@@ -1,0 +1,28 @@
+# --- Config ---
+REGISTRY_NODE_IP = "192.168.49.1"  # replace with your node IP
+REGISTRY_PORT = "32000"
+#REGISTRY_ADDR = f"{REGISTRY_NODE_IP}:{REGISTRY_PORT}"
+IMAGE_NAME = "collection-service"
+
+# --- Build ARM image and push to in-cluster registry ---
+#docker_build(
+#    IMAGE_NAME,
+#    "app",
+#    registry=REGISTRY_ADDR,
+# uncomment if building from x86 for ARM Pis:
+# platform="linux/arm64",
+#    live_update=[
+#        sync("app", "/app"),
+#    ],
+#)
+
+allow_k8s_contexts('default')
+
+# --- Kubernetes manifests (your app) ---
+k8s_yaml("k8s/collection-service-tilt.yml")
+
+# Optional: label resource, port-forward, etc.
+k8s_resource(
+    IMAGE_NAME,
+    port_forwards='9002:8088'
+)
